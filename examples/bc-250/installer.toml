@@ -1,0 +1,187 @@
+[installer]
+title = "BC-250 installer"
+flake = "/etc/nixos-bc-250"
+target_flake = "/etc/nixos"
+hosts_dir = "bc-250/hosts"
+apply_keymap_from = "keymap"
+default_hostname = "bc250"
+default_username = "nixos"
+
+[[check]]
+name = "iommu"
+command = "dmesg"
+warn_if_contains = "AMD-Vi: Interrupt remapping enabled"
+message = "IOMMU looks enabled. Disable it: Chipset -> GFX Configuration -> NB Configuration -> IOMMU."
+
+[[check]]
+name = "uefi"
+command = "test"
+args = ["-d", "/sys/firmware/efi"]
+warn_unless_contains = ""
+message = "Not booted in UEFI mode; the generated system uses systemd-boot."
+
+[layout.btrfs]
+description = "Subvolumes with zstd compression"
+file = "bc-250/installer/disko/btrfs.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[layout.ext4]
+description = "Simple and predictable"
+file = "bc-250/installer/disko/ext4.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[layout.xfs]
+description = "XFS, no snapshots"
+file = "bc-250/installer/disko/xfs.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[layout.f2fs]
+description = "F2FS with zstd compression"
+file = "bc-250/installer/disko/f2fs.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[layout.bcachefs]
+description = "bcachefs with zstd subvolumes, out-of-tree module"
+file = "bc-250/installer/disko/bcachefs.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[profile.plasma]
+description = "Gaming, desktop: Plasma"
+imports = ["../../extras/cache.nix", "../../extras/gaming.nix", "../../extras/flatpak.nix", "../../extras/desktop-plasma.nix"]
+vars = { session = "plasma", displayManager = "services.displayManager.sddm" }
+
+[profile.cosmic]
+description = "Gaming, desktop: COSMIC"
+imports = ["../../extras/cache.nix", "../../extras/gaming.nix", "../../extras/flatpak.nix", "../../extras/desktop-cosmic.nix"]
+vars = { session = "cosmic", displayManager = "services.displayManager.cosmic-greeter" }
+
+[profile.gnome]
+description = "Gaming, desktop: GNOME"
+imports = ["../../extras/cache.nix", "../../extras/gaming.nix", "../../extras/flatpak.nix", "../../extras/desktop-gnome.nix"]
+vars = { session = "gnome", displayManager = "services.displayManager.gdm" }
+
+[profile.xfce]
+description = "Gaming, desktop: Xfce"
+imports = ["../../extras/cache.nix", "../../extras/gaming.nix", "../../extras/flatpak.nix", "../../extras/desktop-xfce.nix"]
+vars = { session = "xfce", displayManager = "services.xserver.displayManager.lightdm" }
+
+[profile.minimal]
+description = "Console only"
+imports = ["../../extras/cache.nix"]
+
+[[question]]
+type = "bool"
+key = "cu40"
+prompt = "40 CU unlock"
+default = false
+help = "Re-enables the 16 harvested CUs. ~60% in compute, ~4% in games, and not every board unlocks."
+
+[[question]]
+type = "choice"
+key = "videoDriver"
+prompt = "X11 video driver"
+choices = ["amdgpu", "modesetting"]
+default = "amdgpu"
+help = "amdgpu is the native driver; modesetting is the fallback if X fails to start."
+
+[[question]]
+type = "bool"
+key = "gamescope"
+prompt = "Gamescope session"
+default = true
+help = "Console-style Steam session through Jovian. Turn it off when installing in a VM, where there is no AMD GPU to drive it."
+
+[[question]]
+type = "bool"
+key = "bigPicture"
+prompt = "Start Steam at login"
+default = false
+help = "Launch Steam in Big Picture when the desktop session opens. Works without gamescope."
+
+[[question]]
+type = "bool"
+key = "steamAutoStart"
+prompt = "Boot into Steam"
+default = true
+help = "Start the gamescope session at boot. Turn it off to boot to the desktop; Steam stays launchable from there."
+
+[[question]]
+type = "bool"
+key = "autoLogin"
+prompt = "Automatic login"
+default = true
+help = "Log the user in without a password prompt. Convenient for a console, not for a shared machine."
+
+[[question]]
+type = "bool"
+key = "decky"
+prompt = "Decky Loader"
+default = false
+help = "Plugin loader for the Steam session, installed by many for overlays and tweaks."
+
+[[question]]
+type = "choice"
+key = "zram"
+prompt = "Compressed swap (zram)"
+choices = ["off", "25", "50"]
+default = "50"
+help = "Percentage of RAM usable as zstd-compressed swap. The 16 GB are shared with the GPU, so this trades CPU time for headroom; 50 is what SteamOS uses."
+
+[[question]]
+type = "bool"
+key = "sshd"
+prompt = "OpenSSH server"
+default = true
+
+[[question]]
+type = "bool"
+key = "firewall"
+prompt = "Firewall"
+default = false
+
+[[question]]
+type = "choice"
+key = "gpuClock"
+prompt = "GPU clock ceiling"
+choices = ["1500", "1600", "1700", "1800", "1850", "1900", "2000", "2100", "2230", "2300"]
+default = "1500"
+help = "MHz. 1500 is the stock lock and the default: raise it once the board is known good. 2000 @ 1000 mV is the documented safe start, 2230 @ 1060 mV the air-cooled maximum, 2300 @ 1075 mV needs a high static pressure fan. Gains above 2100 are single-digit."
+
+[[question]]
+type = "choice"
+key = "browser"
+prompt = "Web browser"
+choices = ["firefox", "brave", "chromium", "google-chrome", "none"]
+default = "firefox"
+
+[[question]]
+type = "choice"
+key = "shell"
+prompt = "Login shell"
+choices = ["fish", "zsh", "bash"]
+default = "fish"
+
+[[question]]
+type = "choice"
+key = "locale"
+prompt = "System language"
+choices = ["fr_FR.UTF-8", "en_US.UTF-8", "en_GB.UTF-8", "de_DE.UTF-8", "es_ES.UTF-8", "it_IT.UTF-8"]
+default = "fr_FR.UTF-8"
+
+[[question]]
+type = "choice"
+key = "timezone"
+prompt = "Time zone"
+choices = ["Europe/Paris", "Europe/London", "Europe/Berlin", "Europe/Madrid", "America/New_York", "UTC"]
+default = "Europe/Paris"
+
+[[question]]
+type = "choice"
+key = "keymap"
+prompt = "Console keymap"
+choices = ["fr", "us", "de", "es", "uk"]
+default = "fr"
+
+[[render]]
+template = "bc-250/installer/templates/default.nix.hbs"
+output = "default.nix"
