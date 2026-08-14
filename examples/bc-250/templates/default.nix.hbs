@@ -1,0 +1,29 @@
+{ lib, ... }:
+{
+  imports = [
+    ../bc250/hardware.nix
+    ./disko.nix
+{{#each imports}}    {{this}}
+{{/each}}  ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  networking.hostName = "{{hostname}}";
+{{#if (eq profile "steam")}}
+  jovian.steam.user = "{{username}}";
+{{/if}}
+  users.users."{{username}}" = {
+    isNormalUser = true;
+    extraGroups = [
+      "wheel"
+      "video"
+      "audio"
+      "input"
+      "networkmanager"
+    ];
+    hashedPassword = "{{hashedPassword}}";
+  };
+
+  system.stateVersion = "26.05";
+}

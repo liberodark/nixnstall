@@ -1,0 +1,42 @@
+[installer]
+title = "BC-250 installer"
+flake = "/etc/nixos-bc-250"
+target_flake = "/etc/nixos"
+hosts_dir = "bc-250/hosts"
+default_hostname = "bc250"
+default_username = "nixos"
+
+[[check]]
+name = "iommu"
+command = "dmesg"
+warn_if_contains = "AMD-Vi: Interrupt remapping enabled"
+message = "IOMMU looks enabled. Disable it: Chipset -> GFX Configuration -> NB Configuration -> IOMMU."
+
+[[check]]
+name = "uefi"
+command = "test"
+args = ["-d", "/sys/firmware/efi"]
+warn_unless_contains = ""
+message = "Not booted in UEFI mode; the generated system uses systemd-boot."
+
+[layout.btrfs]
+description = "Subvolumes with zstd compression"
+file = "bc-250/installer/disko/btrfs.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[layout.ext4]
+description = "Simple and predictable"
+file = "bc-250/installer/disko/ext4.nix"
+device_placeholder = "/dev/nvme0n1"
+
+[profile.steam]
+description = "Steam session (gamescope) and ES-DE"
+imports = ["../../extras/cache.nix", "../../extras/steam-machine.nix"]
+
+[profile.minimal]
+description = "Console only"
+imports = ["../../extras/cache.nix"]
+
+[[render]]
+template = "bc-250/installer/templates/default.nix.hbs"
+output = "default.nix"
